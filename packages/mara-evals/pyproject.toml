@@ -1,0 +1,27 @@
+[project]
+name = "mara-evals"
+version = "0.1.0"
+description = "Eval harness: case generation from the seeded world, code scorers, a simulated approver, Braintrust experiments and trace replay."
+requires-python = ">=3.12"
+dependencies = [
+    "mara-core",
+    "mara-data",
+    "mara-orchestrator",
+    "braintrust>=0.40",
+    "autoevals>=0.0.130",
+    "agentevals>=0.0.9",
+    "openai>=1.100",
+    "rich>=13",
+]
+
+[tool.uv.sources]
+mara-core = { workspace = true }
+mara-data = { workspace = true }
+mara-orchestrator = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mara_evals"]

@@ -1,0 +1,95 @@
+# MARA: Multi-Agent Research & Action platform.
+#
+# This root file is a uv *workspace*. Every service lives in its own package
+# (apps/, mcp-servers/, agents/, packages/), and they all share one lock file
+# and one virtual environment during development:
+#
+#     uv sync            # installs every package below in editable mode
+#     uv run mara --help # the developer CLI
+#
+# Docker images install a single package with `uv sync --package <name>`.
+
+[project]
+name = "mara"
+version = "0.1.0"
+description = "Multi-Agent Research & Action platform: a LangGraph supervisor, MCP tools, A2A delegation, zero-trust tokens, human approval, trace replay and evals."
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = { text = "MIT" }
+dependencies = [
+    "mara-core",
+    "mara-cli",
+    "mara-data",
+    "mara-evals",
+    "mara-orchestrator",
+    "mara-executor",
+    "mara-token-service",
+    "mara-mock-apis",
+    "mara-mcp-knowledge",
+    "mara-mcp-warehouse",
+    "mara-mcp-live-data",
+    "mara-mcp-actions",
+    "mara-research-agent",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4",
+    "pytest-asyncio>=1.2",
+    "respx>=0.22",
+    "ruff>=0.14",
+    "mypy>=1.18",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.uv.workspace]
+members = [
+    "packages/*",
+    "apps/orchestrator",
+    "apps/executor",
+    "apps/token-service",
+    "apps/mock-apis",
+    "mcp-servers/*",
+    "agents/*",
+]
+
+[tool.uv.sources]
+mara-core = { workspace = true }
+mara-cli = { workspace = true }
+mara-data = { workspace = true }
+mara-evals = { workspace = true }
+mara-orchestrator = { workspace = true }
+mara-executor = { workspace = true }
+mara-token-service = { workspace = true }
+mara-mock-apis = { workspace = true }
+mara-mcp-knowledge = { workspace = true }
+mara-mcp-warehouse = { workspace = true }
+mara-mcp-live-data = { workspace = true }
+mara-mcp-actions = { workspace = true }
+mara-research-agent = { workspace = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+addopts = "-m 'not integration'"
+markers = [
+    "integration: needs a local Postgres and starts every service in offline mode (run with -m integration)",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+extend-exclude = ["ui", "data", "infra"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "ASYNC"]
+ignore = ["E501", "B008"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+warn_unused_ignores = true

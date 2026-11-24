@@ -1,0 +1,47 @@
+# Users and clients for the development token service (apps/token-service).
+#
+# This mirrors infra/keycloak/realm-mara.json, so switching to Keycloak is a
+# matter of changing AUTH_ISSUER / AUTH_TOKEN_URL / AUTH_JWKS_URL. Audience keys
+# (knowledge, warehouse, ...) resolve to the canonical resource ids in settings.
+#
+# Passwords here are for a local demo only. Never reuse this file anywhere real.
+
+access_token_ttl_seconds: 300   # task and service tokens: five minutes
+user_token_ttl_seconds: 900     # user login tokens: fifteen minutes
+
+users:
+  alice:    { password: alice,    name: "Alice Chen",    groups: [eng, "region:all"],              roles: [user] }
+  bob:      { password: bob,      name: "Bob Okafor",    groups: [support, "region:na"],           roles: [user, approver] }
+  dana:     { password: dana,     name: "Dana Ruiz",     groups: [finance, "region:emea"],         roles: [user] }
+  admin:    { password: admin,    name: "Admin",         groups: [eng, support, finance, "region:all"], roles: [user, approver, admin] }
+  eval-bot: { password: eval-bot, name: "Eval Harness",  groups: [eng, support, finance, "region:all"], roles: [user, approver, admin] }
+
+clients:
+  mara-ui:
+    public: true
+    grants: [password]
+    user_token_audience: orchestrator
+
+  mara-orchestrator:
+    secret_env: ORCHESTRATOR_CLIENT_SECRET
+    default_secret: dev-orchestrator-secret
+    grants: [client_credentials, "urn:ietf:params:oauth:grant-type:token-exchange"]
+    client_credentials:          # catalog listing and A2A delegation, as itself
+      knowledge: ["catalog:read"]
+      warehouse: ["catalog:read"]
+      live_data: ["catalog:read"]
+      actions: ["catalog:read"]
+      research_agent: ["research:run"]
+    token_exchange:              # on behalf of the user, one task at a time
+      subject_audience: orchestrator
+      audiences:
+        knowledge: ["docs:read"]
+        warehouse: ["sql:read"]
+        live_data: ["incidents:read", "github:read", "fx:read"]
+
+  mara-executor:
+    secret_env: EXECUTOR_CLIENT_SECRET
+    default_secret: dev-executor-secret
+    grants: [client_credentials]
+    client_credentials:
+      actions: ["github:issues:write", "slack:write", "email:send"]

@@ -1,0 +1,32 @@
+[project]
+name = "mara-orchestrator"
+version = "0.1.0"
+description = "The LangGraph supervisor: plans tasks, runs workers in parallel over MCP and A2A, verifies answers, and pauses for human approval before any write."
+requires-python = ">=3.12"
+dependencies = [
+    "mara-core",
+    "fastapi>=0.115",
+    "sse-starlette>=2.2",
+    "langgraph>=1.2,<2",
+    "langgraph-checkpoint-postgres>=3.0",
+    "langchain>=1.5,<2",
+    "langchain-core>=1.8",
+    "langchain-google-genai>=4.5",
+    "langchain-mcp-adapters>=0.3,<0.4",
+    "mcp>=1.30,<2",
+    "a2a-sdk[http-server,signing]>=1.3,<2",
+    "opentelemetry-instrumentation-fastapi>=0.57b0",
+]
+
+[project.scripts]
+mara-orchestrator = "mara_orchestrator.__main__:main"
+
+[tool.uv.sources]
+mara-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mara_orchestrator"]

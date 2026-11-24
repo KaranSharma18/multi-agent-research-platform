@@ -1,0 +1,22 @@
+[project]
+name = "mara-executor"
+version = "0.1.0"
+description = "Runs approved actions. Plain code, no model calls, on its own network: the only component that can reach the actions server."
+requires-python = ">=3.12"
+dependencies = [
+    "mara-core",
+    "mcp>=1.30,<2",
+]
+
+[project.scripts]
+mara-executor = "mara_executor.__main__:main"
+
+[tool.uv.sources]
+mara-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mara_executor"]

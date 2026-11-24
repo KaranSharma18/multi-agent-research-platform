@@ -1,0 +1,194 @@
+# MARA, the whole platform in containers.
+#
+#   docker compose up --build          # everything (first build takes a few minutes)
+#   open http://localhost:3000         # UI (log in as alice / alice, approve as bob / bob)
+#
+# Optional extras:
+#   docker compose --profile observability up    # + Jaeger traces at http://localhost:16686
+#   docker compose --profile keycloak up         # + Keycloak at http://localhost:8080 (see docs/operations.md)
+#
+# Networks enforce the separation of duties: the orchestrator, which reads
+# untrusted text, has no route to the actions server. Only the executor does.
+
+x-python: &python
+  restart: unless-stopped
+  env_file:
+    - path: .env
+      required: false
+  environment: &env
+    HOST: 0.0.0.0
+    MARA_DATA_DIR: /data
+    APP_DB_URL: postgresql://mara:mara@postgres:5432/mara
+    WAREHOUSE_RO_URL: postgresql://agent_ro:agent_ro@postgres:5432/warehouse
+    WAREHOUSE_ADMIN_URL: postgresql://warehouse:warehouse@postgres:5432/warehouse
+    QDRANT_URL: http://qdrant:6333
+    AUTH_ISSUER: http://token-service:8090
+    AUTH_TOKEN_URL: http://token-service:8090/token
+    AUTH_JWKS_URL: http://token-service:8090/jwks.json
+    MCP_KNOWLEDGE_URL: http://mcp-knowledge:8101/mcp
+    MCP_WAREHOUSE_URL: http://mcp-warehouse:8102/mcp
+    MCP_LIVE_DATA_URL: http://mcp-live-data:8103/mcp
+    MCP_ACTIONS_URL: http://mcp-actions:8104/mcp
+    RESEARCH_AGENT_URL: http://web-research-agent:8200
+    MOCK_APIS_URL: http://mock-apis:8300
+    ORCHESTRATOR_URL: http://orchestrator:8000
+    CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+    OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  volumes:
+    - secrets:/app/.secrets
+    - data:/data
+
+x-build: &build
+  context: .
+  dockerfile: infra/docker/python.Dockerfile
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      retries: 30
+    networks: [data]
+
+  qdrant:
+    image: qdrant/qdrant:v1.20.2
+    restart: unless-stopped
+    volumes: [qdrant:/qdrant/storage]
+    ports: ["6333:6333"]
+    networks: [data]
+
+  # One-off setup: keys, synthetic data, ingestion. Re-run with `docker compose run --rm init`.
+  init:
+    <<: *python
+    restart: "no"
+    build: { <<: *build, args: { PACKAGE: mara-cli, MODULE: mara_cli.main } }
+    image: mara/cli
+    command: ["sh", "-c", "mara keys && mara seed && mara ingest"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      qdrant: { condition: service_started }
+    networks: [data]
+
+  token-service:
+    <<: *python
+    build: { <<: *build, args: { PACKAGE: mara-token-service, MODULE: mara_token_service } }
+    image: mara/token-service
+    environment: { <<: *env, PORT: "8090" }
+    ports: ["8090:8090"]
+    depends_on: { init: { condition: service_completed_successfully } }
+    networks: [edge, backend, actions]
+
+  mock-apis:
+    <<: *python
+    build: { <<: *build, args: { PACKAGE: mara-mock-apis, MODULE: mara_mock_apis } }
+    image: mara/mock-apis
+    environment: { <<: *env, PORT: "8300" }
+    depends_on: { init: { condition: service_completed_successfully } }
+    networks: [backend, actions]
+
+  mcp-knowledge:
+    <<: *python
+    build: { <<: *build, args: { PACKAGE: mara-mcp-knowledge, MODULE: mara_mcp_knowledge } }
+    image: mara/mcp-knowledge
+    environment: { <<: *env, PORT: "8101" }
+    depends_on: [token-service]
+    networks: [backend, data]
+
+  mcp-warehouse:
+    <<: *python
+    build: { <<: *build, args: { PACKAGE: mara-mcp-warehouse, MODULE: mara_mcp_warehouse } }
+    image: mara/mcp-warehouse
+    environment: { <<: *env, PORT: "8102" }
+    depends_on: [token-service]
+    networks: [backend, data]
+
+  mcp-live-data:
+    <<: *python
+    build: { <<: *build, args: { PACKAGE: mara-mcp-live-data, MODULE: mara_mcp_live_data } }
+    image: mara/mcp-live-data
+    environment: { <<: *env, PORT: "8103" }
+    depends_on: [token-service, mock-apis]
+    networks: [backend]
+
+  mcp-actions:
+    <<: *python
+    build: { <<: *build, args: { PACKAGE: mara-mcp-actions, MODULE: mara_mcp_actions } }
+    image: mara/mcp-actions
+    environment: { <<: *env, PORT: "8104" }
+    depends_on: [token-service, mock-apis]
+    networks: [actions]
+
+  web-research-agent:
+    <<: *python
+    build: { <<: *build, args: { PACKAGE: mara-research-agent, MODULE: mara_research_agent } }
+    image: mara/web-research-agent
+    environment: { <<: *env, PORT: "8200" }
+    depends_on: [token-service]
+    networks: [backend]
+
+  orchestrator:
+    <<: *python
+    build: { <<: *build, args: { PACKAGE: mara-orchestrator, MODULE: mara_orchestrator } }
+    image: mara/orchestrator
+    environment: { <<: *env, PORT: "8000" }
+    ports: ["8000:8000"]
+    depends_on: [mcp-knowledge, mcp-warehouse, mcp-live-data, web-research-agent]
+    networks: [edge, backend, data]
+
+  executor:
+    <<: *python
+    build: { <<: *build, args: { PACKAGE: mara-executor, MODULE: mara_executor } }
+    image: mara/executor
+    depends_on: [mcp-actions, orchestrator]
+    networks: [actions, data]
+
+  ui:
+    build: { context: ., dockerfile: infra/docker/ui.Dockerfile }
+    image: mara/ui
+    restart: unless-stopped
+    ports: ["3000:80"]
+    depends_on: [orchestrator]
+    networks: [edge]
+
+  jaeger:
+    profiles: [observability]
+    image: jaegertracing/all-in-one:1.57
+    environment: { COLLECTOR_OTLP_ENABLED: "true" }
+    ports: ["16686:16686"]
+    networks: [backend, data, actions]
+
+  keycloak:
+    profiles: [keycloak]
+    image: quay.io/keycloak/keycloak:26.8.2
+    command: ["start-dev", "--import-realm", "--http-port=8080"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # One issuer for browser and containers: tokens always say http://localhost:8080/realms/mara,
+      # while containers may still call the token endpoint at http://keycloak:8080.
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+    volumes:
+      - ./infra/keycloak/realm-mara.json:/opt/keycloak/data/import/realm-mara.json:ro
+    ports: ["8080:8080"]
+    networks: [edge, backend, actions]
+
+networks:
+  edge: {}
+  backend: {}
+  actions: {}
+  data: {}
+
+volumes:
+  pgdata: {}
+  qdrant: {}
+  secrets: {}
+  data: {}

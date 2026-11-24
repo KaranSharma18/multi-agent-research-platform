@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "note": "SHA-256 of each tool's name, description, input schema and scope. Regenerate with `uv run mara tools lock` after reviewing a change.",
+  "servers": {
+    "knowledge": {
+      "fetch_chunk": "c60ecc3603a38e978a5dee85dcdb68cd65c9aaf908a7dc1dc96270f1faed5de7",
+      "list_sources": "9bbd76f10a91075860b301eeebd9f04142491e25094f156ce1d8f386e578aade",
+      "search_docs": "e0a1fb0304eea34df2648a90c31cb640386cc032807406fbb134ec2e4586e916"
+    },
+    "live_data": {
+      "get_fx_rate": "6c3cb9cb81ac4d5472069bbef9497d498f40442e31c8d4880a3498904d748a3d",
+      "get_incident": "d4ecfad2fd50b8fa234044324f39f90148f56060141389f4955dd3fe23d9adf3",
+      "get_incident_timeline": "3a8693b73400ceda3e496acc9f5dc3428b2c8861bc1a15feaffdd8df42377c70",
+      "get_issue": "eccd9e6a8cce265a80709b33579baf5f3a3532782e0f22353d441124b508695e",
+      "get_pull_request": "68f5d6b0beb8c846f54a14b75d179013688a8af0cfda228a6ae56a0ae706587b",
+      "get_service_status": "2831603dcc66d07fc337defbdf1b44c2143561c141a1a3409d6afc21b29a2782",
+      "list_incidents": "7290b99dfda362332e16c9394f93f4b22489e399bcea41b233b0ff1653191807",
+      "list_pull_requests": "dd097bb93d7b385295ae2d7d01a8077d5fa0750fd0e7cc757d1ad7cb1d8f94bb",
+      "search_issues": "e795eaac7f03fa073479ce6a982de4295cb2321498d6195151cbdc6544f11f87"
+    },
+    "warehouse": {
+      "describe_table": "7b6a9d723dcbecd22730c545832700c5eda277bf5733953e450ba7171d53b4b9",
+      "list_tables": "b879f761f659652a6821d05dcfa7998cc9eb7ed7e7a99a81143e8bdc3b36c695",
+      "run_sql": "4038f4befa60ac3a74edcfa85e844cc61d8fa27eeea67eeb0ef79d3f02cae824"
+    }
+  }
+}

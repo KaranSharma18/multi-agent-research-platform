@@ -1,0 +1,52 @@
+# Scope policy. Code reads this file; models never choose scopes.
+#
+# task_kinds: when the planner creates a task of a kind, the orchestrator
+#   exchanges the user's token for one with this audience and only these scopes.
+# tools: the scope each tool needs. MCP servers enforce it on every call, and
+#   `find_tools` only offers tools whose scope the task's token carries.
+# core_tools: the tools a worker sees from the start; others load on demand.
+
+catalog_scope: "catalog:read"   # lets the orchestrator call tools/list, nothing else
+
+task_kinds:
+  docs:
+    audience: knowledge
+    scopes: ["docs:read"]
+  sql:
+    audience: warehouse
+    scopes: ["sql:read"]
+  live_api:
+    audience: live_data
+    scopes: ["incidents:read", "github:read", "fx:read"]
+  web_research:
+    audience: research_agent
+    scopes: ["research:run"]
+
+tools:
+  knowledge:
+    search_docs: "docs:read"
+    fetch_chunk: "docs:read"
+    list_sources: "docs:read"
+  warehouse:
+    list_tables: "sql:read"
+    describe_table: "sql:read"
+    run_sql: "sql:read"
+  live_data:
+    list_incidents: "incidents:read"
+    get_incident: "incidents:read"
+    get_incident_timeline: "incidents:read"
+    get_service_status: "incidents:read"
+    search_issues: "github:read"
+    get_issue: "github:read"
+    list_pull_requests: "github:read"
+    get_pull_request: "github:read"
+    get_fx_rate: "fx:read"
+  actions:
+    create_github_issue: "github:issues:write"
+    post_slack_message: "slack:write"
+    send_email: "email:send"
+
+core_tools:
+  docs: ["search_docs"]
+  sql: ["list_tables", "describe_table", "run_sql"]
+  live_api: ["list_incidents", "search_issues"]

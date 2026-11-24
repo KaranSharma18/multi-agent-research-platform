@@ -1,0 +1,28 @@
+# Where agents may write, checked by code before a person ever sees a proposal,
+# and checked again by the actions server before anything is sent.
+
+github_repos:
+  - acme-cloud/support-followups
+  - acme-cloud/incident-actions
+
+slack_channels:
+  - "#oncall-payments"
+  - "#support-escalations"
+  - "#incident-review"
+  - "#account-owners"
+
+email_domains:
+  - acme-cloud.example
+
+# Links allowed inside issue bodies and messages (anything else is stripped).
+url_domains:
+  - status.acme-cloud.example
+  - docs.acme-cloud.example
+  - github.com
+
+# External email is high risk; it stays off in the demo.
+email_enabled: false
+
+limits:
+  max_actions_per_run: 5
+  max_actions_per_user_per_day: 20

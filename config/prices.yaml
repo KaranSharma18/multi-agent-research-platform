@@ -1,0 +1,22 @@
+# USD per 1M tokens, used for per-run cost accounting and the $0.10 hard cap.
+# Check https://ai.google.dev/gemini-api/docs/pricing before quoting numbers:
+# prices change, and Gemini 3.6-3.8 Flash had introductory pricing in late 2026.
+# Thinking tokens are billed as output, so keep thinking levels low for workers.
+
+models:
+  gemini-3.8-flash:      { input: 1.50, cached_input: 0.15,  output: 7.50 }
+  gemini-3.7-flash:      { input: 1.50, cached_input: 0.15,  output: 7.50 }
+  gemini-3.6-flash:      { input: 1.50, cached_input: 0.15,  output: 7.50 }
+  gemini-3.5-flash:      { input: 1.50, cached_input: 0.15,  output: 9.00 }
+  gemini-3.5-flash-lite: { input: 0.30, cached_input: 0.03,  output: 1.50 }
+  gemini-3.1-flash-lite: { input: 0.25, cached_input: 0.025, output: 1.50 }
+  gemini-3.1-pro-preview: { input: 2.00, cached_input: 0.20, output: 12.00 }
+  offline-heuristic:     { input: 0.0,  cached_input: 0.0,   output: 0.0 }
+
+embeddings:
+  gemini-embedding-001:  { input: 0.15 }
+  gemini-embedding-2:    { input: 0.20 }
+  hash-embedder:         { input: 0.0 }
+
+# Used when a model is missing above; deliberately on the expensive side.
+default: { input: 2.00, cached_input: 0.20, output: 12.00 }

@@ -1,0 +1,13 @@
+# Domains the remote research agent may fetch pages from.
+# An empty `allow` list means "anything not blocked". Narrow it for production:
+# search results can point anywhere, and the fetch hook (not the prompt) is what
+# enforces this list.
+
+allow: []
+block:
+  - evil.test
+  - pastebin.com
+  - bit.ly
+
+max_sources: 6
+recency_days: 30
